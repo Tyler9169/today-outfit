@@ -9,7 +9,7 @@ export class VisionError extends Error {
 
 export async function recognize(image: string, config: VisionConfig, signal?: AbortSignal): Promise<Recognition> {
   if (!config.key || !config.url || !config.model) {
-    throw new VisionError("尚未配置视觉识别服务，请先填写本地 API 配置；你也可以手动选择类别和颜色。", 503);
+    throw new VisionError("尚未配置视觉识别服务，请先配置服务端识别接口；你也可以手动选择类别和颜色。", 503);
   }
   let url: URL;
   try { url = new URL(config.url); } catch { throw new VisionError("视觉服务地址配置不正确。", 503); }

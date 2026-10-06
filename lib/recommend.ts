@@ -11,7 +11,7 @@ function neutral(color: string) { return /^(黑|白|灰|米白|米|深蓝|藏蓝
 export function recommend(items: Clothing[], state: AppState, conditions: Conditions, only?: Category) {
   const available = items.filter(i => !i.dirty);
   const selected = { ...state.selected };
-  const locked = { ...state.locked };
+  const locked = Object.fromEntries(Object.entries(state.locked).filter(([cat,id]) => available.some(i => i.id === id && i.category === cat)));
   for (const cat of Object.keys(selected)) if (!available.some(i => i.id === selected[cat] && i.category === cat)) { delete selected[cat]; delete locked[cat]; }
   if (only && locked[only]) return { selected, locked, reason: "请先解锁该位置。", complete: false };
   const missing = (["上衣","裤子","鞋子"] as Category[]).filter(cat => !available.some(i => i.category === cat));

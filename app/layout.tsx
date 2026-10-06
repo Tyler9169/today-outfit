@@ -5,10 +5,7 @@ export const metadata: Metadata = {
   title: "今天穿什么 · 我的衣橱",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "今天穿什么", statusBarStyle: "default" },
-  description: "收藏衣服照片，整理你的私人衣橱。",
-  other: {
-    "codex-preview": "development",
-  },
+  description: "批量整理衣服照片，生成搭配、局部替换与收藏，支持包含照片的备份迁移。",
   icons: {
     icon: "/icon-192.png",
     apple: "/icon-180.png",

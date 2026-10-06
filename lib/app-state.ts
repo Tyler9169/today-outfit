@@ -30,5 +30,9 @@ export function pruneState(state: AppState, ids: Set<string>): AppState {
 export function reconcileState(state: AppState, items: import("./wardrobe").Clothing[]): AppState {
   const valid = pruneState(state, new Set(items.map(i => i.id)));
   const clean = (values: Record<string,string>) => Object.fromEntries(Object.entries(values).filter(([cat,id]) => items.some(i => i.id === id && i.category === cat && !i.dirty)));
-  return { ...valid, selected: clean(valid.selected), locked: clean(valid.locked), candidates: [] };
+  const favorites = valid.favorites.filter(ids => {
+    const pieces = ids.map(id => items.find(i => i.id === id)!);
+    return new Set(pieces.map(i => i.category)).size === pieces.length && ["上衣", "裤子", "鞋子"].every(cat => pieces.some(i => i.category === cat));
+  });
+  return { ...valid, favorites, selected: { ...clean(valid.selected), ...clean(valid.locked) }, locked: clean(valid.locked), candidates: [] };
 }

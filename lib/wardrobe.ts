@@ -97,3 +97,23 @@ export async function writeMeta(value: unknown): Promise<void> {
   const db = await openDatabase();
   try { await new Promise<void>((resolve, reject) => { const tx = db.transaction("meta", "readwrite"); tx.objectStore("meta").put(value, "app-state"); tx.oncomplete = () => resolve(); tx.onabort = () => reject(tx.error); tx.onerror = () => reject(tx.error); }); } finally { db.close(); }
 }
+
+// Commit clothes and their references together; abort preserves the entire old snapshot.
+export async function commitWardrobe(before: Clothing[], after: Clothing[], state: unknown): Promise<void> {
+  const db = await openDatabase();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(["clothes", "meta"], "readwrite");
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => reject(tx.error ?? new Error("保存已回滚"));
+      tx.onerror = () => reject(tx.error);
+      try {
+        const clothes = tx.objectStore("clothes"), nextIds = new Set(after.map(i => i.id));
+        const old = new Map(before.map(i => [i.id, i]));
+        for (const item of before) if (!nextIds.has(item.id)) clothes.delete(item.id);
+        for (const item of after) if (old.get(item.id) !== item) clothes.put(item);
+        tx.objectStore("meta").put(state, "app-state");
+      } catch (error) { tx.abort(); reject(error); }
+    });
+  } finally { db.close(); }
+}

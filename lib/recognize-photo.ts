@@ -11,11 +11,17 @@ export async function recognizePhoto(image: HTMLImageElement, signal: AbortSigna
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const requestController = new AbortController();
+  const cancel = () => requestController.abort();
+  if (signal.aborted) cancel();
+  else signal.addEventListener("abort", cancel, { once: true });
+  const timeout = setTimeout(cancel, 55_000);
+  try {
   const response = await fetch("/api/recognize", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image: canvas.toDataURL("image/jpeg", 0.85) }),
-    signal: AbortSignal.any([signal, AbortSignal.timeout(55_000)]),
+    signal: requestController.signal,
   });
   const body = await response.json();
   if (!response.ok) {
@@ -23,4 +29,8 @@ export async function recognizePhoto(image: HTMLImageElement, signal: AbortSigna
     throw new Error(failure.success ? failure.data.error : "识别失败，请重试或手动填写。");
   }
   return recognitionSchema.parse(body);
+  } catch (error) {
+    if (requestController.signal.aborted && !signal.aborted) throw new Error("识别超时，请重试或手动录入。");
+    throw error;
+  } finally { clearTimeout(timeout); signal.removeEventListener("abort", cancel); }
 }

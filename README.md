@@ -1,60 +1,40 @@
-# 今天穿什么 · Today Outfit
+# 今天穿什么 · 手机穿搭网站
 
-由 [Tyler9169](https://github.com/Tyler9169) 维护的免费中文个人衣橱与穿搭网页工具。
+手机优先的联网网站，适用于 iPhone Safari 和安卓 Chrome。使用现有 Sites 项目发布，保留仅所有者可访问的权限。GitHub Pages 和原生入口作为历史代码保留，不属于本次发布目标。
 
-[立即使用](https://tyler9169.github.io/today-outfit/) · [关于作者](https://tyler9169.github.io/today-outfit/about.html) · [反馈问题](https://github.com/Tyler9169/today-outfit/issues)
+## 使用与数据
 
-手机和电脑浏览器都能使用的个人衣橱工具。上传衣服照片、填写类别与颜色，从自己的衣橱选择搭配，并导入导出包含照片的备份。
+- 批量选择照片，每张一件衣服，每次最多 30 张、队列最多 100 张、单张最多 20 MB。照片需能被浏览器解码；无法解码的 HEIC 等文件请转换成 JPG、PNG 或 WebP。
+- 识别结果需逐张确认；可修改类别、颜色及自己了解的适用条件。未配置识别时可直接手动录入。
+- 按场景、手动填写的温度、雨天和活动地点推荐；可固定单品、局部替换、收藏及重新应用。标记待洗的衣服不会进入新推荐。推荐是规则建议，不是视觉审美或保暖保证。
+- 衣橱、照片、收藏与最近穿着记录保存在当前浏览器 IndexedDB，数据库沿用 `my-wardrobe`。不自动跨设备同步；不同网址、浏览器的数据相互独立。
+- 换设备或清理浏览器前导出含照片的 JSON 备份。导入支持 v1/v2，默认合并去重；ID 冲突另存并映射收藏。替换全部必须确认。衣物和状态使用同一事务，失败回滚。
+- 页面不提供离线模型、离线语音或原生安装包。旧网站缓存退役时仅清理对应缓存，不清理 IndexedDB。
 
-## 在线使用
+## 识别配置
 
-在线入口：https://tyler9169.github.io/today-outfit/
+服务端 `/api/recognize`：GET 查询配置是否完整，POST 接收压缩 JPEG 并调用兼容 Chat Completions 的视觉服务。配置查询不返回密钥。
 
-仓库管理员首次需要在 **Settings → Pages → Build and deployment** 选择 **Deploy from a branch**，分支 **main**，目录 **/docs**，点击 **Save**。等 GitHub Pages 部署成功后，以上链接才可使用。
+在 Sites 的生产环境变量中配置 `VISION_API_URL`、`VISION_MODEL`、`VISION_API_KEY`（密钥必须标记为 secret），重新部署使其生效。本地开发使用 `.dev.vars`，参照 `.dev.vars.example`，不得提交真实密钥。
 
-iPhone 使用 Safari 打开，分享 → 添加到主屏幕；安卓使用 Chrome 菜单 → 安装应用或添加到主屏幕。等待页面显示“离线准备完成”后可尝试断网使用。
+当前生产识别配置为空。未接入真实模型，不将单元测试的模拟响应当作真实识别验证；手动录入可以独立使用。
 
-## 数据和功能边界
+## 开发与检查
 
-- 照片、衣橱保存在当前设备的浏览器中，不会因为源码上传 GitHub 而公开。
-- 手机和电脑不自动同步。换设备、清理浏览器前，请导出备份，再在新设备导入。
-- GitHub Pages 版本使用手动类别与颜色录入、本地规则搭配，不提供云端 AI 照片识别。
-- 服务端识别代码保留在 `app/api/recognize`，需要自行部署后端和配置服务端密钥，不能直接运行在 GitHub Pages 上。
-- `mobile/` 是尚未完成的原生应用入口，不是已发布的 iOS/Android 安装包；当前公开使用方式是网页。
-
-## 本地运行网页版本
-
-安装 Node.js 22.13 以上版本（建议 24），执行：
+使用 Node.js >=22.13，保留 npm 和现有 lockfile：
 
 ```sh
 npm ci
-npm run pages:dev
+npm run dev
+npx tsc --noEmit --incremental false
+npm test
+npm run build
 ```
 
-打开终端显示的本地地址。
+测试覆盖识别响应、取消、缺少配置、推荐锁定与替换、属性评分、收藏失效清理、备份冲突映射和 IndexedDB 回滚。浏览器检查使用隔离的本地地址和测试图片，不修改真实衣橱。
 
-## 更新 GitHub Pages
+## 发布
 
-```sh
-npm run pages:build
-```
+沿用 `.openai/hosting.json` 中原 Sites project_id，通过 Sites 工作流验证、构建、保存和部署；不用 GitHub Pages 或 Capacitor 构建发布本网站。发布后以 Sites 成功状态返回的网址为准，手机需登录获授权的所有者账户。
 
-将源码和重新生成的 `docs/` 一起提交到 `main`。Pages 会部署 `docs/`。构建使用相对路径，适配仓库子目录；应用图标、清单与离线缓存均包含在构建产物中。
-
-## 检查
-
-```sh
-npm run pages:build
-node --test tests/vision.test.mjs
-```
-
-## 开发目录
-
-- `app/page.tsx`：当前衣橱界面。
-- `components/`、`lib/`：照片、搭配、备份与本地存储。
-- `github-pages/`：GitHub Pages 独立入口，复用现有衣橱界面。
-- `scripts/build-github-pages.mjs`：生成相对路径清单及离线缓存。
-- `docs/`：可以直接托管的网页构建产物。
-- `documentation/FRAMEWORK.md`：原始完整框架与服务端配置说明。
-
-`.dev.vars`、本地环境配置、依赖目录和运行缓存不应上传。服务端配置示例见 `.dev.vars.example`，不要把真实密钥填进任何公开文件。
+桌面浏览器的窄屏检查不等于 iPhone/安卓真机认证。真实设备的照片选择、文件下载和存储限制仍需实机确认。
