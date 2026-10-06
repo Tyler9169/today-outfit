@@ -11,7 +11,7 @@ const files = (await walk(root)).filter(f=>!f.endsWith("/sw.js")).sort();
 const hash = createHash("sha256");
 for (const file of files) hash.update(await readFile(file));
 let template = await readFile("scripts/service-worker.js", "utf8");
-template = template.replace('cache.match("/")', 'cache.match(new URL("./", self.registration.scope).href)');
+template = template.replace('cache.match("/")', 'cache.match(request, { ignoreSearch: true })');
 hash.update(template);
 const resources = ["./", ...files.map(f=>"./"+path.relative(root,f).split(path.sep).join("/"))];
 await writeFile("docs/sw.js", `const CACHE_NAME = "wardrobe-pages-${hash.digest("hex").slice(0,16)}";\nconst RESOURCES = ${JSON.stringify(resources)}.map(url => new URL(url, self.registration.scope).href);\n${template}`);

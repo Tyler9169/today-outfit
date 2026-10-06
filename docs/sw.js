@@ -1,5 +1,5 @@
-const CACHE_NAME = "wardrobe-pages-3646822ec4eb0f20";
-const RESOURCES = ["./","./assets/definitions-QeSOkqGU.js","./assets/index-BGasVy2r.js","./assets/index-BcMz_lYn.css","./assets/native-store-De22TiFy.js","./assets/web-D02iE8Mn.js","./assets/web-DOyZCj4T.js","./favicon.svg","./file.svg","./globe.svg","./icon-180.png","./icon-192.png","./icon-512.png","./icon-source.svg","./index.html","./manifest.webmanifest","./window.svg"].map(url => new URL(url, self.registration.scope).href);
+const CACHE_NAME = "wardrobe-pages-122f5a87b66cf4b9";
+const RESOURCES = ["./","./about.html","./assets/index-CemDNVXH.css","./assets/index-CsgFvB7u.js","./favicon.svg","./file.svg","./globe.svg","./icon-180.png","./icon-192.png","./icon-512.png","./icon-source.svg","./index.html","./manifest.webmanifest","./sitemap.xml","./window.svg"].map(url => new URL(url, self.registration.scope).href);
 /* globals CACHE_NAME, RESOURCES */
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
@@ -25,7 +25,7 @@ self.addEventListener("fetch", event => {
   if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
-    if (request.mode === "navigate") return await cache.match(new URL("./", self.registration.scope).href) || fetch(request);
+    if (request.mode === "navigate") return await cache.match(request, { ignoreSearch: true }) || fetch(request);
     // Older clients can finish using their original chunks after a version update.
     return await cache.match(request) || await caches.match(request) || fetch(request);
   })());

@@ -1,10 +1,14 @@
-# 今天穿什么 · 选衣服
+# 今天穿什么 · Today Outfit
+
+由 [Tyler9169](https://github.com/Tyler9169) 维护的免费中文个人衣橱与穿搭网页工具。
+
+[立即使用](https://tyler9169.github.io/today-outfit/) · [关于作者](https://tyler9169.github.io/today-outfit/about.html) · [反馈问题](https://github.com/Tyler9169/today-outfit/issues)
 
 手机和电脑浏览器都能使用的个人衣橱工具。上传衣服照片、填写类别与颜色，从自己的衣橱选择搭配，并导入导出包含照片的备份。
 
 ## 在线使用
 
-发布后入口：https://Tyler9169.github.io/today-outfit/
+在线入口：https://tyler9169.github.io/today-outfit/
 
 仓库管理员首次需要在 **Settings → Pages → Build and deployment** 选择 **Deploy from a branch**，分支 **main**，目录 **/docs**，点击 **Save**。等 GitHub Pages 部署成功后，以上链接才可使用。
 
