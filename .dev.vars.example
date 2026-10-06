@@ -1,0 +1,6 @@
+# 完整的 OpenAI 兼容 Chat Completions 地址（含 /chat/completions）
+VISION_API_URL="https://api.openai.com/v1/chat/completions"
+# 填写服务商提供的视觉模型 ID
+VISION_MODEL=""
+# 仅保存在本地 .dev.vars 中，不要提交或在聊天里发送
+VISION_API_KEY=""
