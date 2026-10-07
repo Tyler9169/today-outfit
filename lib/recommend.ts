@@ -1,6 +1,8 @@
+import { fashionScore, fashionAdvice } from "./fashion";
+import type { WeatherSummary } from "./weather";
 import type { Category, Clothing } from "./wardrobe";
 import { type AppState, type Scene, scenes } from "./app-state";
-export type Conditions = { scenes: Scene[]; temperature: number; rain: boolean; location: "室内" | "室外" | "都有" };
+export type Conditions = { weather?: WeatherSummary; scenes: Scene[]; temperature: number; rain: boolean; location: "室内" | "室外" | "都有" };
 export function parseScenes(text: string): Scene[] {
   const found: Scene[] = [];
   const words: Record<Scene, RegExp> = { 日常: /日常|买菜|逛街|散步|休闲/, 通勤: /上班|工作|办公室|通勤|开会/, 约会: /约会|恋人|对象|情侣/, 聚会: /聚会|聚餐|朋友|吃饭|晚宴|派对/, 运动: /运动|跑步|健身|打球|锻炼/ };
@@ -23,15 +25,19 @@ export function recommend(items: Clothing[], state: AppState, conditions: Condit
   for (const cat of slotList) {
     if (locked[cat] && available.some(i => i.id === locked[cat])) { selected[cat] = locked[cat]; continue; }
     const candidates = available.filter(i => i.category === cat);
-    const alternatives = candidates.filter(i => i.id !== selected[cat]);
-    const pool = alternatives.length ? alternatives : candidates;
+    const suitable = candidates.filter(i => !i.attributes?.confirmed ||
+      ((i.attributes.minTemp === undefined || conditions.temperature >= i.attributes.minTemp) &&
+       (i.attributes.maxTemp === undefined || conditions.temperature <= i.attributes.maxTemp)));
+    const options = !only && suitable.length ? suitable : candidates;
+    const alternatives = options.filter(i => i.id !== selected[cat]);
+    const pool = alternatives.length ? alternatives : options;
     const score = (i: Clothing) => {
       const a = i.attributes;
-      let result = neutral(i.color) ? 2 : 0;
+      let result = (neutral(i.color) ? 2 : 0) + fashionScore(i,available.filter(p=>p.category!==cat && Object.values(selected).includes(p.id)),state.profile);
       if (recent.has(i.id)) result -= 4;
       if (a?.confirmed) {
         result += conditions.scenes.filter(s => a.scenes?.includes(s)).length * 6;
-        if (a.minTemp !== undefined && a.maxTemp !== undefined) result += conditions.temperature >= a.minTemp && conditions.temperature <= a.maxTemp ? 8 : -12;
+        if (a.minTemp !== undefined || a.maxTemp !== undefined) result += (a.minTemp === undefined || conditions.temperature >= a.minTemp) && (a.maxTemp === undefined || conditions.temperature <= a.maxTemp) ? 8 : -40;
         if (conditions.rain && conditions.location !== "室内") result += a.rainSuitable === true ? 4 : a.rainSuitable === false ? -5 : 0;
         result += (a.comfort ?? 3) - 3;
       }
@@ -42,7 +48,13 @@ export function recommend(items: Clothing[], state: AppState, conditions: Condit
     if (pool[0]) { changed ||= selected[cat] !== pool[0].id; selected[cat] = pool[0].id; }
   }
   const chosen = available.filter(i => Object.values(selected).includes(i.id));
-  const warnings: string[] = [];
+  const warnings: string[] = fashionAdvice(chosen,state.profile);
+  if(conditions.weather) {
+    const w=conditions.weather;
+    warnings.push(`参考${w.place}时段预报：体感${w.low}–${w.high}℃，降雨概率最高${w.rainProbability}%，风速最高${w.wind} km/h`);
+    if(w.high-w.low>=8) warnings.push("时段温差较大，建议穿可脱卸的层次");
+    if(w.wind>=25 && conditions.location!=="室内") warnings.push("风较大，请确认外层防风性，照片不能证明防风性能");
+  }
   if (conditions.scenes.length > 1) warnings.push(`兼顾${conditions.scenes.join("与")}，场景评分综合取舍`);
   if (chosen.some(i => !i.attributes?.confirmed)) warnings.push("部分属性待确认，不能保证温度与场景适合");
   if (chosen.some(i => i.attributes?.confirmed && ((i.attributes.minTemp !== undefined && conditions.temperature < i.attributes.minTemp) || (i.attributes.maxTemp !== undefined && conditions.temperature > i.attributes.maxTemp)))) warnings.push("有单品超出你确认的温度范围，请调整或增加衣物");

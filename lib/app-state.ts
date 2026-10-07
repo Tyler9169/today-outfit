@@ -2,7 +2,9 @@ import { readMeta, writeMeta } from "./wardrobe";
 import { z } from "zod";
 export const scenes = ["日常", "通勤", "约会", "聚会", "运动"] as const;
 export type Scene = typeof scenes[number];
+import { profileSchema } from "./fashion";
 export const stateSchema = z.object({
+  profile: profileSchema.default({}),
   selected: z.record(z.string()).default({}), locked: z.record(z.string()).default({}),
   favorites: z.array(z.array(z.string())).default([]),
   history: z.array(z.object({ date: z.string(), ids: z.array(z.string()) })).default([]),

@@ -1,6 +1,6 @@
 export const categories = ["上衣", "裤子", "鞋子", "外套"] as const;
 export type Category = (typeof categories)[number];
-export type Attributes = { confirmed: boolean; fit?: string; style?: string; thickness?: string; warmth?: string; minTemp?: number; maxTemp?: number; comfort?: number; rainSuitable?: boolean; scenes?: string[] };
+export type Attributes = { confirmed: boolean; featuresConfirmed?: boolean; pattern?: string; neckline?: string; sleeve?: string; length?: string; material?: string; materialConfirmed?: boolean; materialSource?: "manual" | "label"; labelText?: string; fit?: string; style?: string; thickness?: string; warmth?: string; minTemp?: number; maxTemp?: number; comfort?: number; rainSuitable?: boolean; scenes?: string[] };
 export type Clothing = {
   attributes?: Attributes;
   dirty?: boolean;
