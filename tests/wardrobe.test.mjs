@@ -51,3 +51,13 @@ test('IndexedDB commits metadata and photos; failed replacement and clone roll b
   assert.equal((await getClothes()).length,4);assert.deepEqual(await readMeta(),state);
   assert.equal(await (await getClothes()).find(i=>i.id==='top').photo.text(),'photo-top');
 });
+test('coat can be added in warm weather, kept on regeneration, or explicitly omitted',()=>{
+  const coat=item('coat','外套'), extra=item('coat2','外套','蓝色');
+  const state={...freshState(),selected:{上衣:'top',裤子:'pants',鞋子:'shoes'}};
+  const added=recommend([...clothes,coat,extra],state,{...conditions,coat:'wear'},'外套');
+  assert.ok(added.selected.外套);
+  assert.equal(added.selected.上衣,'top');assert.equal(added.selected.裤子,'pants');assert.equal(added.selected.鞋子,'shoes');
+  assert.ok(recommend([...clothes,coat],state,{...conditions,coat:'wear'}).selected.外套);
+  const removed=recommend([...clothes,coat],{...state,selected:{...state.selected,外套:'coat'},locked:{外套:'coat'}},{...conditions,temperature:10,coat:'skip'});
+  assert.equal(removed.selected.外套,undefined);assert.equal(removed.locked.外套,undefined);
+});
