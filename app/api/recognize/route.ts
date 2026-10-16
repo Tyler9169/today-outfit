@@ -1,16 +1,23 @@
 import { env } from "cloudflare:workers";
 import { recognize, VisionError } from "@/lib/vision";
+import { getChatGPTUser } from "@/app/chatgpt-auth";
+import { reserveRecognition, finishRecognition } from "@/lib/recognition-budget";
 const headers = { "Cache-Control": "no-store" };
 function configuration() {
   const values = { VISION_API_KEY: env.VISION_API_KEY, VISION_API_URL: env.VISION_API_URL, VISION_MODEL: env.VISION_MODEL };
-  return { values, missing: Object.entries(values).filter(([,v]) => !v?.trim()).map(([k]) => k) };
+  const missing = Object.entries(values).filter(([,v]) => !v?.trim()).map(([k]) => k);
+  if (!env.DB) missing.push("DB");
+  return { values, missing };
 }
 export async function GET() {
   const { missing } = configuration();
-  return Response.json({ configured: missing.length === 0, missing }, { headers });
+  const authenticated = !!await getChatGPTUser();
+  return Response.json({ configured: missing.length === 0 && authenticated, serviceConfigured: missing.length === 0, authenticated, missing }, { headers });
 }
 export async function POST(request: Request) {
   const reply = (body: unknown, status = 200) => Response.json(body, { status, headers });
+  const user = await getChatGPTUser();
+  if (!user) return reply({ error: "请先登录后使用识别；也可以直接手动录入。" }, 401);
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return reply({ error: "不允许跨站识别请求。" }, 403);
   if (!request.headers.get("content-type")?.includes("application/json")) return reply({ error: "请求格式不正确。" }, 415);
@@ -32,10 +39,17 @@ export async function POST(request: Request) {
   let image: unknown, mode: "garment" | "label" = "garment";
   try { const body = JSON.parse(text); image = body?.image; if(body?.mode !== undefined && body.mode !== "garment" && body.mode !== "label") return reply({ error: "识别模式不正确。" }, 400); mode = body?.mode ?? "garment"; } catch { return reply({ error: "请求格式不正确。" }, 400); }
   if (typeof image !== "string" || !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(image)) return reply({ error: "请上传有效照片。" }, 400);
+  let reservation: string | null;
+  try { reservation = await reserveRecognition(env.DB!, user.userId); }
+  catch { return reply({ error: "识别额度服务暂不可用，请稍后重试或手动录入。" }, 503); }
+  if (!reservation) return reply({ error: "识别正在忙碌或已达到使用额度，请稍后重试或手动录入。" }, 429);
   try {
     return reply(await recognize(image, { key: values.VISION_API_KEY, url: values.VISION_API_URL, model: values.VISION_MODEL }, request.signal, mode));
   } catch (error) {
     if (error instanceof VisionError) return reply({ error: error.message }, error.status);
     return reply({ error: "识别超时或网络失败，请重试或手动录入。" }, 502);
+  } finally {
+    // A failed release leaves a bounded 90-second lease; it must not turn a successful model result into a retry.
+    await finishRecognition(env.DB!, reservation).catch(() => {});
   }
 }
