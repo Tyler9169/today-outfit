@@ -55,3 +55,15 @@ next-env.d.ts
 /codex-write-check.txt
 /.openai/
 *.tsbuildinfo
+
+# Keep local credentials out of source control
+*.key
+*.p12
+*.pfx
+credentials.json
+service-account*.json
+.secrets/
+.netrc
+.pypirc
+__pycache__/
+*.py[cod]
